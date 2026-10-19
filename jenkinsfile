@@ -4,9 +4,7 @@ pipeline {
 
     stages {
         stage('Checkout code') {
-            steps {
-                git branch: 'master', url: 'https://github.com/<your-user>/Country-service.git'
-            }
+            steps { checkout scm }
         }
 
         stage('Compile, test, package') {
