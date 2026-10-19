@@ -50,12 +50,5 @@ pipeline {
     }
 }
 
-        stage('Deploy to Tomcat') {
-            steps {
-                deploy adapters: [tomcat9(credentialsId: 'tomcat-creds', path: '', url: 'http://localhost:8090')],
-                       contextPath: 'country-service',
-                       war: '**/target/*.war'
-            }
-        }
-    }
+        
 }
