@@ -33,8 +33,8 @@ pipeline {
         stage('Store reports in Nexus') {
     steps {
         withCredentials([usernamePassword(credentialsId: 'nexus-creds',
-                                          usernameVariable: 'admin',
-                                          passwordVariable: 'ChaimaFatma@123')]) {
+                                  usernameVariable: 'NEXUS_USER',
+                                  passwordVariable: 'NEXUS_PASS')]) {
             sh '''
                 tar -czf jacoco-report.tar.gz target/site/jacoco
                 tar -czf surefire-reports.tar.gz target/surefire-reports
