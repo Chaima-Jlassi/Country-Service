@@ -1,6 +1,9 @@
 pipeline {
     agent any
-    tools { maven 'mymaven' }
+      tools {
+       maven 'mymaven'
+       jdk 'jdk21'
+   }
 
     stages {
         stage('Checkout code') {
