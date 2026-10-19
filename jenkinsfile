@@ -1,44 +1,58 @@
 pipeline {
-agent any
-tools
-{
-maven 'mymaven' }
-stages {
-stage('Checkout code') {
-steps
-{
-git branch: 'master', url: 'https://github.com/Jamina
+    agent any
+    tools { maven 'mymaven' }
 
--ENSI/Country
+    stages {
+        stage('Checkout code') {
+            steps {
+                git branch: 'master', url: 'https://github.com/<your-user>/Country-service.git'
+            }
+        }
 
--service.git' }
-}
-stage('Compile code') {
-steps
-{
-sh 'mvn compile'
-}
-}
-stage('Test code') {
-steps
-{
-sh 'mvn test '
-}
-post{
-success
-{
-junit allowEmptyResults: true, testResults: '**/target
-/surfire
--reports/*.xml'
+        stage('Compile, test, package') {
+            steps { sh 'mvn clean install' }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
 
-}
-}
-}
-stage('Package code') {
-steps
-{
-sh 'mvn package '
-}
-}
-}
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv(installationName: 'MySonarQubeServer', credentialsId: 'sonarqubePWD') {
+                    sh 'mvn sonar:sonar -Dsonar.projectKey=country-service -Dsonar.projectName=country-service'
+                }
+            }
+        }
+
+        stage('Publish artifact to Nexus') {
+            steps { sh 'mvn deploy -DskipTests' }
+        }
+
+        stage('Store reports in Nexus') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'nexus-creds',
+                                                  usernameVariable: 'NEXUS_USER',
+                                                  passwordVariable: 'NEXUS_PASS')]) {
+                    sh '''
+                        zip -r jacoco-report.zip target/site/jacoco
+                        zip -r surefire-reports.zip target/surefire-reports
+                        for f in jacoco-report.zip surefire-reports.zip; do
+                          curl -sf -u "$NEXUS_USER:$NEXUS_PASS" --upload-file "$f" \
+                            "http://localhost:8082/repository/reports/country-service/${BUILD_NUMBER}/$f"
+                        done
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to Tomcat') {
+            steps {
+                deploy adapters: [tomcat9(credentialsId: 'tomcat-creds', path: '', url: 'http://localhost:8090')],
+                       contextPath: 'country-service',
+                       war: '**/target/*.war'
+            }
+        }
+    }
 }

@@ -1,0 +1,4 @@
+<tomcat-users>
+  <role rolename="manager-script"/>
+  <user username="deployer" password="CHANGE_ME" roles="manager-script"/>
+</tomcat-users>
