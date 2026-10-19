@@ -29,6 +29,9 @@ pipeline {
         }
     }
 }
+        stage('Publish artifact to Nexus') {
+    steps { sh 'mvn deploy -DskipTests' }
+}
 
         stage('Store reports in Nexus') {
     steps {
