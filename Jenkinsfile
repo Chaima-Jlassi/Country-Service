@@ -1,9 +1,12 @@
 pipeline {
     agent any
-      tools {
-    maven 'mymaven'
-    jdk 'JDK21'
-}
+      agent any
+    tools { maven 'mymaven' }
+
+    environment {
+        JAVA_HOME = '/opt/jdk-21'
+        PATH = "/opt/jdk-21/bin:${env.PATH}"
+    }
 
     stages {
         stage('Checkout code') {
