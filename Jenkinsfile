@@ -32,7 +32,7 @@ pipeline {
 
         stage('Store reports in Nexus') {
     steps {
-        withCredentials([usernamePassword(credentialsId: 'nexus-creds',
+       withCredentials([usernamePassword(credentialsId: 'nexus-creds',
                                   usernameVariable: 'NEXUS_USER',
                                   passwordVariable: 'NEXUS_PASS')]) {
             sh '''
