@@ -30,26 +30,22 @@ pipeline {
     }
 }
 
-        stage('Publish artifact to Nexus') {
-            steps { sh 'mvn deploy -DskipTests' }
-        }
-
         stage('Store reports in Nexus') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'nexus-creds',
-                                                  usernameVariable: 'NEXUS_USER',
-                                                  passwordVariable: 'NEXUS_PASS')]) {
-                    sh '''
-                        zip -r jacoco-report.zip target/site/jacoco
-                        zip -r surefire-reports.zip target/surefire-reports
-                        for f in jacoco-report.zip surefire-reports.zip; do
-                          curl -sf -u "$NEXUS_USER:$NEXUS_PASS" --upload-file "$f" \
-                            "http://localhost:8082/repository/reports/country-service/${BUILD_NUMBER}/$f"
-                        done
-                    '''
-                }
-            }
+    steps {
+        withCredentials([usernamePassword(credentialsId: 'nexus-creds',
+                                          usernameVariable: 'NEXUS_USER',
+                                          passwordVariable: 'NEXUS_PASS')]) {
+            sh '''
+                tar -czf jacoco-report.tar.gz target/site/jacoco
+                tar -czf surefire-reports.tar.gz target/surefire-reports
+                for f in jacoco-report.tar.gz surefire-reports.tar.gz; do
+                  curl -sf -u "$NEXUS_USER:$NEXUS_PASS" --upload-file "$f" \
+                    "http://localhost:8082/repository/reports/country-service/${BUILD_NUMBER}/$f"
+                done
+            '''
         }
+    }
+}
 
         stage('Deploy to Tomcat') {
             steps {
