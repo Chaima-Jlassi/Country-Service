@@ -27,9 +27,11 @@ pipeline {
         stage('Build Dockerfile') {
             steps {
                 sh 'docker build . -t ${IMAGE}:${BUILD_NUMBER}'
-                withCredentials([string(credentialsId: 'dockerhub-pwd', variable: 'dockerhubpwd')]) {
-                    sh 'echo "$dockerhubpwd" | docker login -u ${DOCKER_USER} --password-stdin'
-                }
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
+                                  usernameVariable: 'DH_USER',
+                                  passwordVariable: 'DH_PASS')]) {
+    sh 'echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin'
+}
                 sh 'docker push ${IMAGE}:${BUILD_NUMBER}'
             }
         }
