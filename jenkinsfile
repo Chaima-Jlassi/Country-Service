@@ -1,55 +1,37 @@
 pipeline {
     agent any
-    tools { maven 'mymaven' }
-
+    tools {
+        maven 'mymaven'
+    }
     stages {
-        stage('Checkout code') {
-            steps { checkout scm }
-        }
-
-        stage('Compile, test, package') {
-            steps { sh 'mvn clean install' }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
-                }
+        stage('Checkout code')
+        {
+            steps {
+                git branch: 'Master', url: 'https://github.com/Chaima-Jlassi/Country-Service.git'
             }
         }
-
-        stage('SonarQube Analysis') {
+        stage('Build maven')
+        {
             steps {
-                withSonarQubeEnv(installationName: 'MySonarQubeServer', credentialsId: 'sonarqubePWD') {
-                    sh 'mvn sonar:sonar -Dsonar.projectKey=country-service -Dsonar.projectName=country-service'
-                }
+                sh 'mvn clean install'
             }
         }
-
-        stage('Publish artifact to Nexus') {
-            steps { sh 'mvn deploy -DskipTests' }
-        }
-
-        stage('Store reports in Nexus') {
+        stage('Build Dockerfile ')
+        {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'nexus-creds',
-                                                  usernameVariable: 'NEXUS_USER',
-                                                  passwordVariable: 'NEXUS_PASS')]) {
-                    sh '''
-                        zip -r jacoco-report.zip target/site/jacoco
-                        zip -r surefire-reports.zip target/surefire-reports
-                        for f in jacoco-report.zip surefire-reports.zip; do
-                          curl -sf -u "$NEXUS_USER:$NEXUS_PASS" --upload-file "$f" \
-                            "http://localhost:8082/repository/reports/country-service/${BUILD_NUMBER}/$f"
-                        done
-                    '''
+                sh 'docker build . -t my-country-service:$BUILD_NUMBER '
+                withCredentials([string(credentialsId: 'dockerhub-pwd', variable: 'dockerhubpwd')]) {
+                sh 'docker login -u chaymajlassi -p ${dockerhubpwd}'
                 }
+                sh 'docker tag my-country-service:$BUILD_NUMBER jamina2385/my-country-service:$BUILD_NUMBER'
+                sh 'docker push jamina2385/my-country-service:$BUILD_NUMBER'
             }
         }
-
-        stage('Deploy to Tomcat') {
+        stage('Deploy micro-service')
+        {
             steps {
-                deploy adapters: [tomcat9(credentialsId: 'tomcat-creds', path: '', url: 'http://localhost:8090')],
-                       contextPath: 'country-service',
-                       war: '**/target/*.war'
+                sh 'docker rm -f $(docker ps -aq)'
+                sh 'docker run -d -p 8082:8082 my-country-service:$BUILD_NUMBER'
             }
         }
     }

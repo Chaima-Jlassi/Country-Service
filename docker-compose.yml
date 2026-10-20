@@ -1,0 +1,12 @@
+services:
+  my-compte-service1:
+    build: .
+    container_name: my-country-service1
+    ports:
+      - '8080:8080'
+
+  my-compte-service2:
+    build: .
+    container_name: my-country-service2
+    ports:
+      - '8081:8080'
