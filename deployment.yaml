@@ -1,19 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: my-country-service
+  name: myapp-deployment
+  labels:
+    app: myapp
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: country-service
+      app: myapp
   template:
     metadata:
       labels:
-        app: country-service
+        app: myapp
     spec:
       containers:
-        - name: country-service-container
-          image: my-country-service:v1
+        - name: myapp-container
+          image: nginx:latest
           ports:
-            - containerPort: 8082
+            - containerPort: 80
