@@ -22,32 +22,20 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv(installationName: 'MySonarQubeServer', credentialsId: 'sonarqubePWD') {
-                    sh 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=country-service -Dsonar.projectName=country-service'
-                }
+     stage('Deploy to Kubernetes') {
+    steps {
+        script {
+            kubeconfig(credentialsId: 'kubeconfig-file', serverUrl: '') {
+                sh 'kubectl apply -f deployment.yaml'
+                sh 'kubectl apply -f service.yaml'
             }
         }
-
-        stage('Publish artifact to Nexus') {
-            steps { sh 'mvn deploy -DskipTests' }
+    }
         }
 
-        stage('Store reports in Nexus') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'nexus-creds',
-                                                  usernameVariable: 'NEXUS_USER',
-                                                  passwordVariable: 'NEXUS_PASS')]) {
-                    sh '''
-                        tar -czf jacoco-report.tar.gz target/site/jacoco
-                        tar -czf surefire-reports.tar.gz target/surefire-reports
-                        for f in jacoco-report.tar.gz surefire-reports.tar.gz; do
-                          curl -sf -u "$NEXUS_USER:$NEXUS_PASS" --upload-file "$f" \
-                            "http://localhost:8082/repository/reports/country-service/${BUILD_NUMBER}/$f"
-                        done
-                    '''
-                }
+      
+
+       
             }
         }
     }
