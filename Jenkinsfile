@@ -1,7 +1,9 @@
 pipeline {
     agent any
 
-    tools { maven 'mymaven' }
+    tools {
+        maven 'mymaven'
+    }
 
     environment {
         JAVA_HOME = '/opt/jdk-21'
@@ -10,30 +12,35 @@ pipeline {
 
     stages {
         stage('Checkout code') {
-            steps { checkout scm }
+            steps {
+                checkout scm
+            }
         }
 
         stage('Compile, test, package') {
-            steps { sh 'mvn clean install' }
+            steps {
+                sh 'mvn clean install'
+            }
             post {
                 always {
-                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+                    junit allowEmptyResults: true,
+                          testResults: '**/target/surefire-reports/*.xml'
                 }
             }
         }
 
-     stage('Deploy to Kubernetes') {
-    steps {
-        script {
-            kubeconfig(credentialsId: 'kubeconfig-file', serverUrl: '') {
-                sh 'kubectl apply -f deployment.yaml'
-                sh 'kubectl apply -f service.yaml'
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    kubeconfig(credentialsId: 'kubeconfig-file', serverUrl: '') {
+                        sh 'kubectl apply -f deployment.yaml'
+                        sh 'kubectl apply -f service.yaml'
+                    }
+                }
             }
         }
     }
-        }
-
-      
+}
 
        
             }
