@@ -46,12 +46,12 @@ pipeline {
         }
 
         stage('Deploy using Ansible playbook') {
-            steps {
-                script {
-                    sh 'ansible-playbook -i hosts playbookCICD.yml --check'
-                }
-            }
+    steps {
+        withCredentials([file(credentialsId: 'vault-pass', variable: 'VAULT_FILE')]) {
+            sh 'ansible-playbook -i inventory.ini playbookCICD.yml --vault-password-file $VAULT_FILE -e image_tag=${BUILD_NUMBER}'
         }
+    }
+}
     }
 
     post {
