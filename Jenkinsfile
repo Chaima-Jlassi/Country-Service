@@ -45,10 +45,16 @@ pipeline {
             }
         }
 
-        stage('Deploy using Ansible playbook') {
+      stage('Deploy using Ansible playbook') {
     steps {
-        withCredentials([file(credentialsId: 'vault-pass', variable: 'VAULT_FILE')]) {
-            sh 'ansible-playbook -i inventory.ini playbookCICD.yml --vault-password-file $VAULT_FILE -e image_tag=${BUILD_NUMBER}'
+        withCredentials([string(credentialsId: 'vault-pass', variable: 'VAULT_PASS')]) {
+            sh '''
+                echo "$VAULT_PASS" > .vault_pass.txt
+                ansible-playbook -i inventory.ini playbookCICD.yml \
+                    --vault-password-file .vault_pass.txt \
+                    -e image_tag=${BUILD_NUMBER}
+                rm -f .vault_pass.txt
+            '''
         }
     }
 }
