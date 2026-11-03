@@ -30,8 +30,8 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
                                   usernameVariable: 'DH_USER',
                                   passwordVariable: 'DH_PASS')]) {
-    sh 'echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin'
-}
+                    sh 'echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin'
+                }
                 sh 'docker push ${IMAGE}:${BUILD_NUMBER}'
             }
         }
@@ -43,6 +43,27 @@ pipeline {
                 // host port 8083 because Nexus already uses 8082 on this machine
                 sh 'docker run -d --name country-service -p 8083:8082 ${IMAGE}:${BUILD_NUMBER}'
             }
+        }
+
+        stage('Deploy using Ansible playbook') {
+            steps {
+                script {
+                    sh 'ansible-playbook -i hosts playbookCICD.yml --check'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Clean up or perform post-build actions
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline and Ansible playbook executed successfully!'
+        }
+        failure {
+            echo 'Pipeline or Ansible playbook execution failed!'
         }
     }
 }
