@@ -6,8 +6,8 @@ pipeline {
     }
 
     environment {
-        JAVA_HOME = '/opt/jdk-21'
-        PATH = "/opt/jdk-21/bin:${env.PATH}"
+        JAVA_HOME     = '/opt/jdk-21'
+        PATH          = "/opt/jdk-21/bin:${env.PATH}"
         MONITORING_NS = 'monitoring'
         KSM_RELEASE   = 'kube-state-metrics'
         IMAGE_NAME    = 'my-country-service'
@@ -32,33 +32,34 @@ pipeline {
             }
         }
 
-        // Chapter 8: Ansible builds the Docker image, pushes it to Docker Hub
-        // and applies deployment.yaml / service.yaml (see playbookCICD.yml)
-       stage('Build, push and deploy with Ansible') {
-    steps {
-        withCredentials([
-    usernamePassword(
-        credentialsId: 'dockerhub-creds',
-        usernameVariable: 'DOCKER_USER',
-        passwordVariable: 'DOCKER_PASS'
-    ),
-    file(
-        credentialsId: 'kubeconfig-file',
-        variable: 'KUBECONFIG_FILE'
-    )
-]) {
-    sh '''
-        ansible-playbook -i localhost, playbookCICD.yml \
-            -e image_name=${IMAGE_NAME} \
-            -e image_tag=${BUILD_NUMBER} \
-            -e docker_registry_username=${DOCKER_USER} \
-            -e docker_registry_password=${DOCKER_PASS} \
-            -e kubeconfig_path=${KUBECONFIG_FILE}
-    '''
-}
-}
+        stage('Build, push and deploy with Ansible') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    ),
+                    string(
+                        credentialsId: 'kubernetes-pwd',
+                        variable: 'KUBECONFIG_CONTENT'
+                    )
+                ]) {
+                    sh '''
+                        echo "$KUBECONFIG_CONTENT" > kubeconfig.tmp
+                        chmod 600 kubeconfig.tmp
 
-        // Kept from the original pipeline (idempotent if Ansible already applied them)
+                        ansible-playbook -i localhost, playbookCICD.yml \
+                            -e image_name=${IMAGE_NAME} \
+                            -e image_tag=${BUILD_NUMBER} \
+                            -e docker_registry_username=${DOCKER_USER} \
+                            -e docker_registry_password=${DOCKER_PASS} \
+                            -e kubeconfig_path=$(pwd)/kubeconfig.tmp
+                    '''
+                }
+            }
+        }
+
         stage('Deploy to Kubernetes') {
             steps {
                 script {
@@ -70,7 +71,6 @@ pipeline {
             }
         }
 
-        // Chapter 9: monitoring (Prometheus scrapes it, Grafana dashboard 13332)
         stage('Deploy kube-state-metrics (Helm)') {
             steps {
                 script {
