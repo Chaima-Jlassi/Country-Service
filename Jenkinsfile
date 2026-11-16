@@ -40,10 +40,10 @@ pipeline {
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     ),
-                    string(
-                        credentialsId: 'kubernetes-pwd',
-                        variable: 'KUBECONFIG_CONTENT'
-                    )
+                    file(
+                credentialsId: 'kubeconfig-file',   // ← use this one
+                variable: 'KUBECONFIG_FILE'
+            )
                 ]) {
                     sh '''
                         echo "$KUBECONFIG_CONTENT" > kubeconfig.tmp
