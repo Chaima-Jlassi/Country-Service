@@ -46,7 +46,7 @@ pipeline {
                 credentialsId: 'kubernetes-pwd',
                 variable: 'KUBECONFIG_FILE'
             )
-        ]) { {
+        ]) { 
                     sh '''
                 ansible-playbook -i localhost, playbookCICD.yml \
                     -e image_name=${IMAGE_NAME} \
