@@ -41,7 +41,7 @@ pipeline {
                         passwordVariable: 'DOCKER_PASS'
                     ),
                     file(
-                credentialsId: 'kubeconfig-file',   // ← use this one
+                credentialsId: 'kubeconfih-file',   // ← use this one
                 variable: 'KUBECONFIG_FILE'
             )
                 ]) {
