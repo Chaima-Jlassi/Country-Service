@@ -1,7 +1,9 @@
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: my-country-service
+  namespace: jenkins
 spec:
   replicas: 3
   selector:
@@ -15,5 +17,11 @@ spec:
       containers:
         - name: country-service-container
           image: chaymajlassi/{{ image_name }}:{{ image_tag }}
+          imagePullPolicy: Always
           ports:
             - containerPort: 8082
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+
