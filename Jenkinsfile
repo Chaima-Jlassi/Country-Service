@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -14,6 +15,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout code') {
             steps {
                 checkout scm
@@ -42,78 +44,103 @@ pipeline {
                 ]) {
                     sh '''
                         ansible-playbook -i localhost, playbookCICD.yml \
-                            -e image_name=${IMAGE_NAME} \
-                            -e image_tag=${BUILD_NUMBER} \
-                            -e kubeconfig_path=${KUBECONFIG_FILE}
+                            -e "image_name=${IMAGE_NAME}" \
+                            -e "image_tag=${BUILD_NUMBER}" \
+                            -e "kubeconfig_path=${KUBECONFIG_FILE}"
                     '''
                 }
             }
         }
 
         stage('Deploy kube-state-metrics (Helm)') {
-    steps {
-        script {
-            kubeconfig(credentialsId: 'kubeconfig-file', serverUrl: '') {
-                sh '''
-                    set -eux
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'kubeconfig-file',
+                        variable: 'KUBECONFIG_FILE'
+                    )
+                ]) {
+                    sh '''
+                        set -eux
 
-                    # Verify Helm
-                    helm version
+                        export KUBECONFIG="$KUBECONFIG_FILE"
 
-                    # Add Prometheus repository
-                    helm repo add prometheus-community \
-                        https://prometheus-community.github.io/helm-charts
+                        echo "Checking Helm..."
+                        helm version
 
-                    helm repo update
+                        echo "Checking Kubernetes..."
+                        kubectl get nodes
 
-                    # Create monitoring namespace
-                    kubectl create namespace ${MONITORING_NS} \
-                        --dry-run=client -o yaml | kubectl apply -f -
+                        echo "Adding Prometheus repository..."
+                        helm repo add prometheus-community \
+                            https://prometheus-community.github.io/helm-charts \
+                            --force-update
 
-                    # Deploy kube-state-metrics
-                    helm upgrade --install ${KSM_RELEASE} \
-                        prometheus-community/kube-state-metrics \
-                        --namespace ${MONITORING_NS} \
-                        --set service.type=NodePort \
-                        --set service.nodePort=30080 \
-                        --wait \
-                        --timeout 180s
+                        helm repo update
 
-                    echo "kube-state-metrics deployed successfully"
-                '''
+                        echo "Creating monitoring namespace..."
+                        kubectl create namespace ${MONITORING_NS} \
+                            --dry-run=client -o yaml | kubectl apply -f -
+
+                        echo "Deploying kube-state-metrics..."
+                        helm upgrade --install ${KSM_RELEASE} \
+                            prometheus-community/kube-state-metrics \
+                            --namespace ${MONITORING_NS} \
+                            --set service.type=NodePort \
+                            --set service.nodePort=30080 \
+                            --wait \
+                            --timeout 180s
+
+                        echo "kube-state-metrics deployed successfully!"
+                    '''
+                }
             }
         }
-    }
-}
-
 
         stage('Verify monitoring') {
-    steps {
-        script {
-            kubeconfig(credentialsId: 'kubeconfig-file', serverUrl: '') {
-                sh '''
-                    set -eux
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'kubeconfig-file',
+                        variable: 'KUBECONFIG_FILE'
+                    )
+                ]) {
+                    sh '''
+                        set -eux
 
-                    kubectl get deployments -n ${MONITORING_NS}
-                    kubectl get pods -n ${MONITORING_NS}
-                    kubectl get services -n ${MONITORING_NS}
+                        export KUBECONFIG="$KUBECONFIG_FILE"
 
-                    kubectl rollout status deployment/${KSM_RELEASE} \
-                        -n ${MONITORING_NS} \
-                        --timeout=180s
-                '''
+                        echo "Checking deployments..."
+                        kubectl get deployments -n ${MONITORING_NS}
+
+                        echo "Checking pods..."
+                        kubectl get pods -n ${MONITORING_NS}
+
+                        echo "Checking services..."
+                        kubectl get services -n ${MONITORING_NS}
+
+                        echo "Checking rollout..."
+                        kubectl rollout status \
+                            deployment/${KSM_RELEASE} \
+                            -n ${MONITORING_NS} \
+                            --timeout=180s
+
+                        echo "Monitoring verification successful!"
+                    '''
+                }
             }
         }
     }
-}
 
     post {
         always {
             cleanWs()
         }
+
         success {
             echo 'Pipeline OK: application deployed with Ansible + kube-state-metrics running.'
         }
+
         failure {
             echo 'Pipeline failed - check the stage logs above.'
         }
