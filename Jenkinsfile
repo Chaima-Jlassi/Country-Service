@@ -34,30 +34,34 @@ pipeline {
 
         // Chapter 8: Ansible builds the Docker image, pushes it to Docker Hub
         // and applies deployment.yaml / service.yaml (see playbookCICD.yml)
-        stage('Build, push and deploy with Ansible') {
-            steps {
-                withCredentials([
+       stage('Build, push and deploy with Ansible') {
+    steps {
+        withCredentials([
             usernamePassword(
                 credentialsId: 'dockerhub-creds',
                 usernameVariable: 'DOCKER_USER',
                 passwordVariable: 'DOCKER_PASS'
             ),
             string(
-        credentialsId: 'kubernetes-pwd',
-        variable: 'KUBECONFIG_CONTENT'
-    )
-        ]) { 
-                    sh '''
+                credentialsId: 'kubernetes-pwd',
+                variable: 'KUBECONFIG_CONTENT'
+            )
+        ]) {
+            sh '''
+                # Write kubeconfig to a file
+                echo "$KUBECONFIG_CONTENT" > kubeconfig.tmp
+                chmod 600 kubeconfig.tmp
+
                 ansible-playbook -i localhost, playbookCICD.yml \
                     -e image_name=${IMAGE_NAME} \
                     -e image_tag=${BUILD_NUMBER} \
-                    -e kubeconfig_path=${KUBECONFIG_FILE} \
-                    -e docker_user=${DOCKER_USER} \
-                    -e docker_pass=${DOCKER_PASS}
+                    -e docker_registry_username=${DOCKER_USER} \
+                    -e docker_registry_password=${DOCKER_PASS} \
+                    -e kubeconfig_path=$(pwd)/kubeconfig.tmp
             '''
-                }
-            }
         }
+    }
+}
 
         // Kept from the original pipeline (idempotent if Ansible already applied them)
         stage('Deploy to Kubernetes') {
