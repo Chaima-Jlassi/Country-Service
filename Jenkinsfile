@@ -37,9 +37,13 @@ pipeline {
         stage('Build, push and deploy with Ansible') {
             steps {
                 withCredentials([
-                    string(credentialsId: 'dockerhub-creds', variable: 'DOCKERHUB_PWD'),
-                    file(credentialsId: 'kubeconfig-file', variable: 'KUBECONFIG_FILE')
-                ]) {
+    usernamePassword(
+        credentialsId: 'dockerhub-creds',
+    ),
+    file(
+        credentialsId: 'kubernetes-pwd',
+    )
+]) {
                     sh '''
                         ansible-playbook -i localhost, playbookCICD.yml \
                             -e image_name=${IMAGE_NAME} \
