@@ -32,14 +32,9 @@ pipeline {
             }
         }
 
-        stage('Build, push and deploy with Ansible') {
+        stage('Deploy with Ansible') {
             steps {
                 withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    ),
                     file(
                         credentialsId: 'kubeconfig-file',
                         variable: 'KUBECONFIG_FILE'
@@ -49,15 +44,11 @@ pipeline {
                         ansible-playbook -i localhost, playbookCICD.yml \
                             -e image_name=${IMAGE_NAME} \
                             -e image_tag=${BUILD_NUMBER} \
-                            -e docker_registry_username=${DOCKER_USER} \
-                            -e docker_registry_password=${DOCKER_PASS} \
                             -e kubeconfig_path=${KUBECONFIG_FILE}
                     '''
                 }
             }
         }
-
-        
 
         stage('Deploy kube-state-metrics (Helm)') {
             steps {
@@ -97,7 +88,7 @@ pipeline {
             cleanWs()
         }
         success {
-            echo 'Pipeline OK: app deployed with Ansible, kube-state-metrics running. Check Grafana dashboard 13332.'
+            echo 'Pipeline OK: application deployed with Ansible + kube-state-metrics running.'
         }
         failure {
             echo 'Pipeline failed - check the stage logs above.'
