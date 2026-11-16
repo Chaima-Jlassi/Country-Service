@@ -41,20 +41,17 @@ pipeline {
                         passwordVariable: 'DOCKER_PASS'
                     ),
                     file(
-                credentialsId: 'kubeconfig-file',   // ← use this one
-                variable: 'KUBECONFIG_FILE'
-            )
+                        credentialsId: 'kubeconfig-file',
+                        variable: 'KUBECONFIG_FILE'
+                    )
                 ]) {
                     sh '''
-                        echo "$KUBECONFIG_CONTENT" > kubeconfig.tmp
-                        chmod 600 kubeconfig.tmp
-
                         ansible-playbook -i localhost, playbookCICD.yml \
                             -e image_name=${IMAGE_NAME} \
                             -e image_tag=${BUILD_NUMBER} \
                             -e docker_registry_username=${DOCKER_USER} \
                             -e docker_registry_password=${DOCKER_PASS} \
-                            -e kubeconfig_path=$(pwd)/kubeconfig.tmp
+                            -e kubeconfig_path=${KUBECONFIG_FILE}
                     '''
                 }
             }
@@ -63,7 +60,7 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    kubeconfig(credentialsId: 'config-file', serverUrl: '') {
+                    kubeconfig(credentialsId: 'kubeconfig-file', serverUrl: '') {
                         sh 'kubectl apply -f deployment.yaml'
                         sh 'kubectl apply -f service.yaml'
                     }
