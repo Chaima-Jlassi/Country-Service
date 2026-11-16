@@ -41,12 +41,12 @@ pipeline {
                         passwordVariable: 'DOCKER_PASS'
                     ),
                     file(
-                credentialsId: 'config-file',   // ← use this one
+                credentialsId: 'kubeconfig-file',   // ← use this one
                 variable: 'KUBECONFIG_FILE'
             )
                 ]) {
                     sh '''
-                        echo "$KUBECONFIG_CONTENT" > config.tmp
+                        echo "$KUBECONFIG_CONTENT" > kubeconfig.tmp
                         chmod 600 kubeconfig.tmp
 
                         ansible-playbook -i localhost, playbookCICD.yml \
