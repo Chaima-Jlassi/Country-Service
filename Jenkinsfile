@@ -7,12 +7,12 @@ pipeline {
     }
 
     environment {
-        JAVA_HOME     = '/opt/jdk-21'
-        PATH          = "/opt/jdk-21/bin:${env.PATH}"
-        MONITORING_NS = 'monitoring'
-        KSM_RELEASE   = 'kube-state-metrics'
-        IMAGE_NAME    = 'my-country-service'
-    }
+    JAVA_HOME     = '/opt/jdk-21'
+    PATH          = "/usr/local/bin:/opt/jdk-21/bin:${env.PATH}"
+    MONITORING_NS = 'monitoring'
+    KSM_RELEASE   = 'kube-state-metrics'
+    IMAGE_NAME    = 'my-country-service'
+}
 
     stages {
 
