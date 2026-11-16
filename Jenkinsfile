@@ -57,16 +57,7 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
-            steps {
-                script {
-                    kubeconfig(credentialsId: 'kubeconfig-file', serverUrl: '') {
-                        sh 'kubectl apply -f deployment.yaml'
-                        sh 'kubectl apply -f service.yaml'
-                    }
-                }
-            }
-        }
+        
 
         stage('Deploy kube-state-metrics (Helm)') {
             steps {
