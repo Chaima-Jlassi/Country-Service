@@ -1,4 +1,4 @@
-
+---
 - name: Build and Deploy Docker Image to Kubernetes
   hosts: localhost
   connection: local
@@ -36,13 +36,14 @@
           path: "{{ dockerfile_path }}"
         source: build
         state: present
+        force_source: true          # rebuild even if tag already exists
 
     - name: Push Docker image to Docker Hub
-  community.docker.docker_image:
-    name: "chaymajlassi/{{ image_name }}"
-    tag: "{{ image_tag }}"
-    push: true
-    source: local
+      community.docker.docker_image:
+        name: "{{ docker_registry_username }}/{{ image_name }}"
+        tag: "{{ image_tag }}"
+        push: true
+        source: local
 
     - name: Create Kubernetes namespace
       kubernetes.core.k8s:
@@ -52,7 +53,7 @@
         state: present
         kubeconfig: "{{ kubeconfig_path }}"
 
-    - name: Deploy application with updated image
+    - name: Deploy application (inline definition)
       kubernetes.core.k8s:
         state: present
         namespace: "{{ k8s_namespace }}"
@@ -62,19 +63,21 @@
           metadata:
             name: my-country-service
           spec:
+            replicas: 3
+            selector:
+              matchLabels:
+                app: country-service
             template:
+              metadata:
+                labels:
+                  app: country-service
               spec:
                 containers:
-                  - name: country-service
+                  - name: country-service-container
                     image: "{{ docker_registry_username }}/{{ image_name }}:{{ image_tag }}"
                     imagePullPolicy: Always
-        kubeconfig: "{{ kubeconfig_path }}"
-
-    - name: Apply Kubernetes Deployment
-      kubernetes.core.k8s:
-        state: present
-        namespace: "{{ k8s_namespace }}"
-        src: deployment.yaml
+                    ports:
+                      - containerPort: 8082
         kubeconfig: "{{ kubeconfig_path }}"
 
     - name: Apply Kubernetes Service
@@ -88,7 +91,8 @@
       kubernetes.core.k8s:
         state: present
         namespace: "{{ k8s_namespace }}"
-        src: deployment.yaml
+        kind: Deployment
+        name: my-country-service
         kubeconfig: "{{ kubeconfig_path }}"
         wait: true
         wait_condition:
