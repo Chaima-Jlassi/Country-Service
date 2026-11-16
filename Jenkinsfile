@@ -42,10 +42,10 @@ pipeline {
                 usernameVariable: 'DOCKER_USER',
                 passwordVariable: 'DOCKER_PASS'
             ),
-            file(
-                credentialsId: 'kubernetes-pwd',
-                variable: 'KUBECONFIG_FILE'
-            )
+            string(
+        credentialsId: 'kubernetes-pwd',
+        variable: 'KUBECONFIG_CONTENT'
+    )
         ]) { 
                     sh '''
                 ansible-playbook -i localhost, playbookCICD.yml \
