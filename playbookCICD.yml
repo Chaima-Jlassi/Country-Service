@@ -47,7 +47,7 @@
               spec:
                 containers:
                   - name: country-service-container
-                    image: "{{ docker_registry_username }}/{{ image_name }}:{{ image_tag }}"
+                    image: "{{ docker_registry_username }}/{{ image_name }}:16"
                     imagePullPolicy: Always
                     ports:
                       - containerPort: 8082
