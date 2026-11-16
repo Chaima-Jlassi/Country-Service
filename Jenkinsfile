@@ -43,12 +43,12 @@ pipeline {
                 passwordVariable: 'DOCKER_PASS'
             ),
             string(
-                credentialsId: 'kubernetes-pwd',
+                credentialsId: 'kubernetes-pwd',   // Secret text
                 variable: 'KUBECONFIG_CONTENT'
             )
         ]) {
             sh '''
-                # Write kubeconfig to a file
+                # Write the secret text into a real file
                 echo "$KUBECONFIG_CONTENT" > kubeconfig.tmp
                 chmod 600 kubeconfig.tmp
 
