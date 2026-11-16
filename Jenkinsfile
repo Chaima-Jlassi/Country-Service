@@ -51,37 +51,61 @@ pipeline {
         }
 
         stage('Deploy kube-state-metrics (Helm)') {
-            steps {
-                script {
-                    kubeconfig(credentialsId: 'kubeconfig-file', serverUrl: '') {
-                        sh '''
-                            helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
-                            helm repo update
-                            helm upgrade --install ${KSM_RELEASE} prometheus-community/kube-state-metrics \
-                                --namespace ${MONITORING_NS} --create-namespace \
-                                --set service.type=NodePort \
-                                --set service.nodePort=30080 \
-                                --wait --timeout 120s
-                        '''
-                    }
-                }
-            }
-        }
+    steps {
+        script {
+            kubeconfig(credentialsId: 'kubeconfig-file', serverUrl: '') {
+                sh '''
+                    set -eux
 
-        stage('Verify monitoring') {
-            steps {
-                script {
-                    kubeconfig(credentialsId: 'kubeconfig-file', serverUrl: '') {
-                        sh '''
-                            kubectl rollout status deployment/${KSM_RELEASE} -n ${MONITORING_NS} --timeout=120s
-                            kubectl get pods -n ${MONITORING_NS}
-                            kubectl get pods
-                        '''
-                    }
-                }
+                    # Verify Helm
+                    helm version
+
+                    # Add Prometheus repository
+                    helm repo add prometheus-community \
+                        https://prometheus-community.github.io/helm-charts
+
+                    helm repo update
+
+                    # Create monitoring namespace
+                    kubectl create namespace ${MONITORING_NS} \
+                        --dry-run=client -o yaml | kubectl apply -f -
+
+                    # Deploy kube-state-metrics
+                    helm upgrade --install ${KSM_RELEASE} \
+                        prometheus-community/kube-state-metrics \
+                        --namespace ${MONITORING_NS} \
+                        --set service.type=NodePort \
+                        --set service.nodePort=30080 \
+                        --wait \
+                        --timeout 180s
+
+                    echo "kube-state-metrics deployed successfully"
+                '''
             }
         }
     }
+}
+
+
+        stage('Verify monitoring') {
+    steps {
+        script {
+            kubeconfig(credentialsId: 'kubeconfig-file', serverUrl: '') {
+                sh '''
+                    set -eux
+
+                    kubectl get deployments -n ${MONITORING_NS}
+                    kubectl get pods -n ${MONITORING_NS}
+                    kubectl get services -n ${MONITORING_NS}
+
+                    kubectl rollout status deployment/${KSM_RELEASE} \
+                        -n ${MONITORING_NS} \
+                        --timeout=180s
+                '''
+            }
+        }
+    }
+}
 
     post {
         always {
