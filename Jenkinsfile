@@ -37,7 +37,7 @@ pipeline {
         stage('Build, push and deploy with Ansible') {
             steps {
                 withCredentials([
-                    string(credentialsId: 'dockerhub-pwd', variable: 'DOCKERHUB_PWD'),
+                    string(credentialsId: 'dockerhub-creds', variable: 'DOCKERHUB_PWD'),
                     file(credentialsId: 'kubeconfig-file', variable: 'KUBECONFIG_FILE')
                 ]) {
                     sh '''
